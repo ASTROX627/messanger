@@ -43,4 +43,4 @@ const Logout: FC = (): JSX.Element => {
   )
 }
 
-export default Logout
+export default Logout;
