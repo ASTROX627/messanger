@@ -1,10 +1,19 @@
 import type { FC, JSX } from "react";
-import Home from "./pages/home/Home";
+import { RouterProvider } from "react-router-dom";
+import router from "./router/router";
+import { Toaster } from "react-hot-toast";
+
+
+
 
 const App: FC = (): JSX.Element => {
   return (
-    <div className="p-4 h-screen flex items-center justify-center">
-      <Home/>
+    <div className="p-4 min-h-screen flex items-center justify-center">
+      <RouterProvider router={router}/>
+      <Toaster
+        position="bottom-left"
+        reverseOrder={true}
+      />
     </div>
   )
 }

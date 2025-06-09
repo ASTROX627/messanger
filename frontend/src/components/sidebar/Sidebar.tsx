@@ -1,7 +1,7 @@
 import type { FC, JSX } from "react"
 import SearchInput from "./SearchInput"
 import Converstations from "./Converstations"
-import Logout from "./Logout"
+import Logout from "./logout/Logout"
 
 const Sidebar:FC = ():JSX.Element => {
   return (
