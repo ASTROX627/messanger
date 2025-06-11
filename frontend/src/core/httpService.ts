@@ -13,7 +13,8 @@ export const httpService = axios.create({
 })
 
 export const httpInterceptedService = axios.create({
-  baseURL: BASE_URL
+  baseURL: BASE_URL,
+  withCredentials: true
 })
 
 httpInterceptedService.interceptors.request.use(

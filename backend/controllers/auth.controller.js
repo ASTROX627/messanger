@@ -25,7 +25,7 @@ export const register = async (req, res) => {
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const boyProfilePicture = `https://avatar.iran.liara.run/public/boy?username=${username}`;
-    const girlProfilePicture = `https://avatar.iran.liara.run/public/girl?username=${username}`;
+    const girlProfilePicture = `https://avatar.iran.liara.run/public/girl/?username=${username}`;
 
     const newUser = new User({
       fullName,
@@ -60,14 +60,14 @@ export const login = async (req, res) => {
 
     const user = await User.findOne({ username });
 
-    if(!user){
-      return res.status(400).json({error: "Invalid username or password"});
+    if (!user) {
+      return res.status(400).json({ error: "Invalid username or password" });
     }
 
     const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
 
-    if(!isPasswordCorrect){
-      return res.status(400).json({error: "Invalid username or password"});
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ error: "Invalid username or password" });
     }
 
     const { accessToken, refreshToken } = generateTokenAndSetCookie(user._id, res);
@@ -120,6 +120,24 @@ export const refreshToken = async (req, res) => {
   } catch (error) {
     console.log("error in refresh token controller", error.message);
     res.status(500).json({ error: "internal server error" });
+  }
+}
+
+export const verifyToken = async (req, res) => {
+  try {
+    const accessToken = req.cookies.accessToken;
+    if (!accessToken) {
+      return res.status(401).json({ isAuthenticated: false });
+    }
+
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select("-password");
+    if (!user) {
+      return res.status(401).json({ isAuthenticated: false });
+    }
+    return res.status(200).json({ isAuthenticated: true });
+  } catch (error) {
+    res.status(401).json({ isAuthenticated: false });
   }
 }
 

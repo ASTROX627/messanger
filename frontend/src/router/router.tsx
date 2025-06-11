@@ -5,24 +5,28 @@ import Login from "../pages/login/Login";
 import { registerAction } from "../pages/register/registerAction";
 import { loginAction } from "../pages/login/loginAction";
 import { logoutAction } from "../components/sidebar/logout/logoutAction";
-
-
+import ProtectRoute from "./protectRoute";
 
 const router = createBrowserRouter([
   {
-    path: "/",
-    index: true,
-    element: <Home/>,
-    action: logoutAction
+    element: <ProtectRoute />,
+    children: [
+      {
+        path: "/",
+        index: true,
+        element: <Home />,
+        action: logoutAction
+      }
+    ]
   },
   {
-    path:"/register",
-    element: <Register/>,
+    path: "/register",
+    element: <Register />,
     action: registerAction
   },
   {
     path: "/login",
-    element: <Login/>,
+    element: <Login />,
     action: loginAction
   }
 ])

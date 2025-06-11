@@ -6,6 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import toast from "react-hot-toast"
 import type { LoginActionResponse } from "./loginAction"
+import { useAuthStore } from "../../provider/authStore"
 
 type LoginFormValue = {
   username: string,
@@ -18,6 +19,8 @@ const loginSchema = Yup.object().shape({
 })
 
 const Login: FC = (): JSX.Element => {
+
+  const{setAuth} = useAuthStore();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValue>({
     resolver: yupResolver(loginSchema),
@@ -39,6 +42,7 @@ const Login: FC = (): JSX.Element => {
         toast.promise(
           new Promise<string>((resolve) => {
             setTimeout(() => {
+              setAuth(true)
               resolve(actionData.successMessage);
               navigate("/");
             }, 2000);
@@ -52,7 +56,7 @@ const Login: FC = (): JSX.Element => {
         );
       }
     }
-  }, [actionData, navigate]);
+  }, [actionData, navigate, setAuth]);
 
   const onSubmit: SubmitHandler<LoginFormValue> = (data) => {
     submitForm(data, { method: "POST", action: "/login" });
