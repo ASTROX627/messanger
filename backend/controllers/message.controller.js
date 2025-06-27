@@ -1,4 +1,4 @@
-import Converstation from "../models/converstation.model.js";
+import Conversation from "../models/conversation.model.js";
 import Message from "../models/message.model.js";
 
 export const sendMessage = async (req, res) => {
@@ -7,12 +7,12 @@ export const sendMessage = async (req, res) => {
     const { id: receiverId } = req.params;
     const senderId = req.user._id;
 
-    let converstation = await Converstation.findOne({
+    let conversation = await Conversation.findOne({
       participants: { $all: [senderId, receiverId] },
     });
-
-    if (!converstation) {
-      converstation = await Converstation.create({
+    
+    if (!conversation) {
+      conversation = await Conversation.create({
         participants: [senderId, receiverId],
       })
     }
@@ -24,10 +24,10 @@ export const sendMessage = async (req, res) => {
     })
 
     if (newMessage) {
-      converstation.messages.push(newMessage._id)
+      conversation.messages.push(newMessage._id)
     }
 
-    await Promise.all([converstation.save(), newMessage.save()]);
+    await Promise.all([conversation.save(), newMessage.save()]);
 
     res.status(201).json(newMessage);
 
@@ -42,15 +42,15 @@ export const getMessage = async (req, res) => {
     const {id: userToChatId} = req.params;
     const senderId = req.user._id;
 
-    const converstation = await Converstation.findOne({
+    const conversation = await Conversation.findOne({
       participants: {$all: [senderId, userToChatId]}
     }).populate("messages");
 
-    if(!converstation){
+    if(!conversation){
       return res.status(200).json([]);
     }
 
-    const messages = converstation.messages;
+    const messages = conversation.messages;
 
     res.status(200).json(messages);
 

@@ -10,6 +10,10 @@ export type LoginActionResponse =
   |{
     success: true,
     successMessage: string
+    _id: string,
+    username: string,
+    fullName: string,
+    profilePicture: string
   }
 
 
@@ -21,7 +25,11 @@ export const loginAction = async ({ request }: ActionFunctionArgs): Promise<Logi
     if (response.status === 200) {
       return{
         success: true,
-        successMessage: "Logging was successful! Redirecting to home page..."
+        successMessage: "Logging was successful! Redirecting to home page...",
+        _id: response.data._id,
+        username: response.data.username,
+        fullName: response.data.fullName,
+        profilePicture: response.data.profilePicture
       }
     }
 

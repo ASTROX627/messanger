@@ -3,10 +3,11 @@ import { useEffect, type FC, type JSX } from "react"
 import toast from "react-hot-toast";
 import { useActionData, useNavigate, useSubmit } from "react-router-dom"
 import type { LogoutActionResponse } from "./logoutAction";
-import { useAuthStore } from "../../../provider/authStore";
+import { useAuthContext } from "../../../context/authContext";
+
 
 const Logout: FC = (): JSX.Element => {
-  const{setAuth} = useAuthStore()
+  const { setAuth } = useAuthContext()
 
   const submitForm = useSubmit();
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Logout: FC = (): JSX.Element => {
       if ("error" in actionData && actionData.error) {
         toast.error(actionData.errorMessage, { duration: 4000 });
         console.log("error in action data");
-        
+
       } else if ("success" in actionData && actionData.success) {
         toast.promise(
           new Promise<string>((resolve) => {
@@ -26,7 +27,7 @@ const Logout: FC = (): JSX.Element => {
               resolve(actionData.successMessage);
               navigate("/login");
               console.log("success in action data");
-              
+
             }, 2000);
           }),
           {
@@ -42,7 +43,7 @@ const Logout: FC = (): JSX.Element => {
   const handleLogout = () => {
     submitForm(null, { method: "POST", action: "/" })
     localStorage.removeItem("isAuthenticated")
-    
+
   };
 
   return (

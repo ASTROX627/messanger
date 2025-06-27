@@ -1,4 +1,4 @@
-import { useEffect, type FC, type JSX } from "react"
+import { useEffect, useState, type FC, type JSX } from "react"
 import { Link, useActionData, useNavigate, useSubmit } from "react-router-dom"
 import AuthInputs from "../../components/auth/AuthInputs"
 import * as Yup from "yup"
@@ -6,7 +6,8 @@ import { useForm, type SubmitHandler } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import toast from "react-hot-toast"
 import type { LoginActionResponse } from "./loginAction"
-import { useAuthStore } from "../../provider/authStore"
+import { useAuthContext } from "../../context/authContext"
+
 
 type LoginFormValue = {
   username: string,
@@ -20,7 +21,7 @@ const loginSchema = Yup.object().shape({
 
 const Login: FC = (): JSX.Element => {
 
-  const{setAuth} = useAuthStore();
+  const { setAuth } = useAuthContext();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValue>({
     resolver: yupResolver(loginSchema),
@@ -34,6 +35,8 @@ const Login: FC = (): JSX.Element => {
   const submitForm = useSubmit();
   const actionData = useActionData() as LoginActionResponse;
 
+  const [showPassword, setShowPassword] = useState(false);
+
   useEffect(() => {
     if (actionData) {
       if ("error" in actionData && actionData.error) {
@@ -42,7 +45,12 @@ const Login: FC = (): JSX.Element => {
         toast.promise(
           new Promise<string>((resolve) => {
             setTimeout(() => {
-              setAuth(true)
+              setAuth(true,{
+                _id: actionData._id,
+                username: actionData.username,
+                fullName: actionData.fullName,
+                profilePicture: actionData.profilePicture
+              })
               resolve(actionData.successMessage);
               navigate("/");
             }, 2000);
@@ -86,6 +94,9 @@ const Login: FC = (): JSX.Element => {
             type="password"
             placeholder="Enter your password."
             error={errors.password?.message}
+            showPassword={showPassword}
+            togglePassword
+            toggle={() => setShowPassword(!showPassword)}
           />
           <Link to="/register" className="text-sm hover:underline hover:text-blue-600 my-4 inline-block mx-0.5">{"Don't"} have an account?</Link>
           <div>

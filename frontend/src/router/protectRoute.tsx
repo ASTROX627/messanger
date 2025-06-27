@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../provider/authStore";
+import { useAuthContext } from "../context/authContext";
+
 
 
 
 const ProtectRoute = () => {
   const navigate = useNavigate();
-  const{isAuthenticated} = useAuthStore()
-  
+  const { isAuthenticated } = useAuthContext()
+
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -15,7 +16,7 @@ const ProtectRoute = () => {
     }
   }, [navigate, isAuthenticated])
 
-  return isAuthenticated? <Outlet/>: null
+  return isAuthenticated ? <Outlet /> : null
 }
 
 export default ProtectRoute;

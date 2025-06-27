@@ -1,4 +1,4 @@
-import { useEffect, type FC, type JSX } from "react"
+import { useEffect, useState, type FC, type JSX } from "react"
 import GenderCheckbox from "./GenderCheckbox"
 import { Link, useActionData, useNavigate, useSubmit } from "react-router-dom"
 import AuthInputs from "../../components/auth/AuthInputs";
@@ -50,6 +50,9 @@ const Register: FC = (): JSX.Element => {
   const navigate = useNavigate();
   const submitForm = useSubmit();
   const actionData = useActionData() as RegisterActionResponse;
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (actionData) {
@@ -113,6 +116,9 @@ const Register: FC = (): JSX.Element => {
               type="password"
               placeholder="Enter your password."
               error={errors.password?.message}
+              showPassword={showPassword}
+              togglePassword
+              toggle={() => setShowPassword(!showPassword)}
             />
 
             {/* CONFIRM_PASSWORD_INPUT */}
@@ -122,6 +128,9 @@ const Register: FC = (): JSX.Element => {
               type="password"
               placeholder="Confirm your password."
               error={errors.confirmPassword?.message}
+              showPassword={showConfirmPassword}
+              togglePassword
+              toggle={() => setShowConfirmPassword(!showConfirmPassword)}
             />
 
             {/* GENDER_CHECK_BOX */}
