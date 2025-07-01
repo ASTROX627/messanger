@@ -6,7 +6,7 @@ import { useForm, type SubmitHandler } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import toast from "react-hot-toast"
 import type { LoginActionResponse } from "./loginAction"
-import { useAuthContext } from "../../context/authContext"
+import { useAppContext } from "../../context/appContext"
 
 
 type LoginFormValue = {
@@ -21,7 +21,7 @@ const loginSchema = Yup.object().shape({
 
 const Login: FC = (): JSX.Element => {
 
-  const { setAuth } = useAuthContext();
+  const { setAuth } = useAppContext();
 
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValue>({
     resolver: yupResolver(loginSchema),
@@ -35,34 +35,26 @@ const Login: FC = (): JSX.Element => {
   const submitForm = useSubmit();
   const actionData = useActionData() as LoginActionResponse;
 
-  const [showPassword, setShowPassword] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);  
 
   useEffect(() => {
-    if (actionData) {
-      if ("error" in actionData && actionData.error) {
-        toast.error(actionData.errorMessage, { duration: 4000 });
-      } else if ("success" in actionData && actionData.success) {
-        toast.promise(
-          new Promise<string>((resolve) => {
-            setTimeout(() => {
-              setAuth(true,{
-                _id: actionData._id,
-                username: actionData.username,
-                fullName: actionData.fullName,
-                profilePicture: actionData.profilePicture
-              })
-              resolve(actionData.successMessage);
-              navigate("/");
-            }, 2000);
-          }),
-          {
-            loading: "Logging user...",
-            success: (message: string) => message,
-            error: (error) => error.message || "Something went wrong, Please try again",
-          },
-          { duration: 4000 }
-        );
-      }
+    if (!actionData) return
+
+    if ("error" in actionData && actionData.error) {
+      toast.error(actionData.errorMessage, { duration: 4000 })
+    } else if ("success" in actionData && actionData.success) {
+      toast.success(actionData.successMessage, {duration: 2000})
+      
+      setAuth(true, {
+        _id: actionData._id,
+        username: actionData.username,
+        fullName: actionData.fullName,
+        profilePicture: actionData.profilePicture
+      })
+
+      setTimeout(() => {
+        navigate("/", {replace: true})
+      }, 1000)
     }
   }, [actionData, navigate, setAuth]);
 

@@ -55,7 +55,7 @@ export const login = async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
-      res.status(400).json({ error: "Username and password are required" });
+      return res.status(400).json({ error: "Username and password are required" });
     }
 
     const user = await User.findOne({ username });

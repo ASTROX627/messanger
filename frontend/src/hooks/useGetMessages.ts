@@ -14,6 +14,8 @@ export const useGetMessages = () => {
       try {
         const response = await httpInterceptedService.get(`/messages/${selectedConversation?._id}`);
         const data = await response.data;
+        console.log("data is:", data);
+        
         if(data.error){
           throw new Error(data.error);
         }

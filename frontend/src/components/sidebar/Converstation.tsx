@@ -1,5 +1,6 @@
-import type { FC, JSX, ReactNode } from "react";
+import { memo, useCallback, useMemo, type FC, type ReactNode } from "react";
 import useConverstation from "../../store/useConverstaion";
+import { useAppContext } from "../../context/appContext";
 
 export type ConversationType = {
   profilePicture: string
@@ -13,19 +14,47 @@ type ConverstationProps = {
   conversation: ConversationType
 }
 
-const Converstation: FC<ConverstationProps> = ({conversation, emoji, lastIndex}):JSX.Element => {
-  const{selectedConversation, setSelectedConversation} = useConverstation();
-  const isSelected = selectedConversation?._id === conversation._id;
+const Conversation: FC<ConverstationProps> = memo(({
+  conversation, emoji, lastIndex
+}) => {
+  const { selectedConversation, setSelectedConversation } = useConverstation();
+  const { onlineUser } = useAppContext();
+
+  console.log("online users:", onlineUser);
+  console.log("conversation id:", conversation._id);
   
-  return(
+  
+
+  const conversationData = useMemo(() =>{
+    const isOnline = onlineUser.includes(conversation._id);
+    console.log(`User ${conversation.fullName} online status:`, isOnline);
+    return{
+      isSelected: selectedConversation?._id === conversation._id,
+      isOnline
+    }
+  }, [onlineUser, conversation._id, selectedConversation?._id])
+
+  console.log("is online:", onlineUser.includes(conversation._id));
+  
+
+  const handleClick = useCallback(() => {
+    setSelectedConversation(conversation);
+  }, [setSelectedConversation, conversation]);
+
+  return (
     <>
-      <div 
-        className={`flex gap-2 items-center hover:bg-sky-500 rounded px-2 py-1 cursor-pointer ${isSelected ? "bg-sky-500": ""}`}
-        onClick={() =>setSelectedConversation(conversation)}  
+      <div
+        className={`flex gap-2 items-center hover:bg-sky-500 rounded px-2 py-1 cursor-pointer ${conversationData.isSelected ? "bg-sky-500" : ""
+          }`}
+        onClick={handleClick}
       >
-        <div className="avatar avatar-online">
+        <div className={`${conversationData.isOnline ? "avatar avatar-online" : "avatar"}`}>
           <div className="w-12 rounded-full">
-            <img src={conversation.profilePicture} alt="user image" />
+            <img
+              src={conversation.profilePicture}
+              alt="user avatar"
+              loading="lazy"
+            />
           </div>
         </div>
         <div className="flex flex-col flex-1">
@@ -35,11 +64,10 @@ const Converstation: FC<ConverstationProps> = ({conversation, emoji, lastIndex})
           </div>
         </div>
       </div>
-      {
-        !lastIndex && <div className="divider my-0 py-0 h-1"/>
-      }
+      {!lastIndex && <div className="divider my-0 py-0 h-1" />}
     </>
   )
-}
+})
 
-export default Converstation;
+Conversation.displayName = 'Conversation'
+export default Conversation

@@ -3,11 +3,11 @@ import { useEffect, type FC, type JSX } from "react"
 import toast from "react-hot-toast";
 import { useActionData, useNavigate, useSubmit } from "react-router-dom"
 import type { LogoutActionResponse } from "./logoutAction";
-import { useAuthContext } from "../../../context/authContext";
+import { useAppContext } from "../../../context/appContext";
 
 
 const Logout: FC = (): JSX.Element => {
-  const { setAuth } = useAuthContext()
+  const { setAuth } = useAppContext();
 
   const submitForm = useSubmit();
   const navigate = useNavigate();
