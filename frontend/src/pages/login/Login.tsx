@@ -1,12 +1,14 @@
 import { useEffect, useState, type FC, type JSX } from "react"
-import { Link, useActionData, useNavigate, useSubmit } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import AuthInputs from "../../components/auth/AuthInputs"
 import * as Yup from "yup"
 import { useForm, type SubmitHandler } from "react-hook-form"
 import { yupResolver } from "@hookform/resolvers/yup"
 import toast from "react-hot-toast"
-import type { LoginActionResponse } from "./loginAction"
 import { useAppContext } from "../../context/appContext"
+import { httpService } from "../../core/httpService"
+import { AxiosError } from "axios"
+
 
 
 type LoginFormValue = {
@@ -20,9 +22,7 @@ const loginSchema = Yup.object().shape({
 })
 
 const Login: FC = (): JSX.Element => {
-
-  const { setAuth } = useAppContext();
-
+  
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormValue>({
     resolver: yupResolver(loginSchema),
     defaultValues: {
@@ -31,35 +31,70 @@ const Login: FC = (): JSX.Element => {
     }
   })
 
+  const { setAuth, isAuthenticated } = useAppContext();
   const navigate = useNavigate();
-  const submitForm = useSubmit();
-  const actionData = useActionData() as LoginActionResponse;
-
-  const [showPassword, setShowPassword] = useState(false);  
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!actionData) return
-
-    if ("error" in actionData && actionData.error) {
-      toast.error(actionData.errorMessage, { duration: 4000 })
-    } else if ("success" in actionData && actionData.success) {
-      toast.success(actionData.successMessage, {duration: 2000})
-      
-      setAuth(true, {
-        _id: actionData._id,
-        username: actionData.username,
-        fullName: actionData.fullName,
-        profilePicture: actionData.profilePicture
-      })
-
-      setTimeout(() => {
-        navigate("/", {replace: true})
-      }, 1000)
+    if (isAuthenticated) {
+      navigate("/", { replace: true })
     }
-  }, [actionData, navigate, setAuth]);
+  }, [isAuthenticated, navigate])
+
+  const loginUser = async(data: LoginFormValue) => {
+    if(!data.username || !data.password){
+      throw new Error("Username and password are required");
+    }
+
+    const cleanData = {
+      username: data.username.trim().toLowerCase(),
+      password: data.password
+    }
+
+    const response = await httpService.post("/auth/login", cleanData);
+
+    if(response.status === 200){
+      return response.data
+    }
+
+    throw new Error("Login failed");
+  }
 
   const onSubmit: SubmitHandler<LoginFormValue> = (data) => {
-    submitForm(data, { method: "POST", action: "/login" });
+    if(isLoading) return;
+    setIsLoading(true);
+
+    const loginPromise = loginUser(data);
+
+    toast.promise(
+      loginPromise,
+      {
+        loading: "Signing you in...",
+        success: (result) => {
+          setAuth(true, result.user);
+          setTimeout(() => {
+            navigate("/", {replace: true});
+          }, 1000);
+          return 'Login successful! Redirecting to home page...';
+        },
+        error: (error) => {
+          if(error instanceof AxiosError){
+            const statusCode = error.response?.status;
+            if(statusCode === 401){
+              return "Invalid username or password";
+            }else if(statusCode === 400){
+              return error.response?.data?.error || "Invalid input data";
+            }else if(statusCode && statusCode >= 500){
+              return "Server error. Please try again later";
+            }
+          }
+          return error.message || "Something went wrong, please try again";
+        }
+      },{duration: 3000}
+    ).finally(() => {
+      setIsLoading(false);
+    })
   };
 
   return (
@@ -92,7 +127,9 @@ const Login: FC = (): JSX.Element => {
           />
           <Link to="/register" className="text-sm hover:underline hover:text-blue-600 my-4 inline-block mx-0.5">{"Don't"} have an account?</Link>
           <div>
-            <button className="btn btn-block btn-sm mt-2 btn-outline">Login</button>
+            <button disabled={isLoading} className="btn btn-block btn-sm mt-2 btn-outline">
+              {isLoading? "Signing In...": "Login"}
+            </button>
           </div>
         </form>
       </div>

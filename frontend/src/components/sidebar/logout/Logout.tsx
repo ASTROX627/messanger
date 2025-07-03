@@ -1,47 +1,56 @@
 import { LogOut } from "lucide-react"
-import { useEffect, type FC, type JSX } from "react"
+import { useState, type FC, type JSX } from "react"
 import toast from "react-hot-toast";
-import { useActionData, useNavigate, useSubmit } from "react-router-dom"
-import type { LogoutActionResponse } from "./logoutAction";
+import { useNavigate } from "react-router-dom"
 import { useAppContext } from "../../../context/appContext";
+import { httpService } from "../../../core/httpService";
+import { AxiosError } from "axios";
 
 
 const Logout: FC = (): JSX.Element => {
   const { setAuth } = useAppContext();
-
-  const submitForm = useSubmit();
   const navigate = useNavigate();
-  const actionData = useActionData() as LogoutActionResponse;
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (actionData) {
-      if ("error" in actionData && actionData.error) {
-        toast.error(actionData.errorMessage, { duration: 4000 });
-        console.log("error in action data");
+  const logoutUser = async() => {
+    const response = await httpService.post("/auth/logout");
 
-      } else if ("success" in actionData && actionData.success) {
-        toast.promise(
-          new Promise<string>((resolve) => {
-            setTimeout(() => {
-              setAuth(false);
-              resolve(actionData.successMessage);
-              navigate("/login");
-              console.log("success in action data");
-
-            }, 2000);
-          }),
-          {
-            loading: "Logging out user...",
-            success: (message: string) => message,
-            error: (error) => error.message || "Something went wrong, Please try again",
-          }, { duration: 4000 }
-        )
-      }
+    if(response.status === 200){
+      return response.data;
     }
-  }, [actionData, navigate, setAuth])
 
-  const handleLogout = () => {
-    submitForm(null, { method: "POST", action: "/" })
+    throw new Error("Logout failed");
+  }
+
+
+
+  const handleLogout = async() => {
+    if(isLoading) return;
+    setIsLoading(true);
+    const logoutPromise = logoutUser();
+
+    toast.promise(
+      logoutPromise,
+      {
+        loading: "Signing you out...",
+        success: () => {
+          setAuth(false);
+          localStorage.removeItem("appState");
+          setTimeout(() => {
+            navigate("/login", {replace: true});
+          }, 1000);
+          return 'Logged out successfully! Redirecting to login page...';
+        },
+        error: (error) => {
+          if(error instanceof AxiosError){
+            return error.response?.data?.error || "Something went wrong, please try again";
+          }
+          return error.message || "Unexpected error occurred";
+        }
+      },{duration: 3000}
+    ).finally(() => [
+      setIsLoading(false)
+    ])
     localStorage.removeItem("isAuthenticated")
 
   };

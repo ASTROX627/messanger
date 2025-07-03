@@ -1,8 +1,10 @@
 import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import generateTokenAndSetCookie from "../utils/generateToken.js";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken";
 
+
+// REGISTER_ROUTE
 export const register = async (req, res) => {
   try {
     const { fullName, username, password, confirmPassword, gender } = req.body;
@@ -13,6 +15,10 @@ export const register = async (req, res) => {
 
     if (password !== confirmPassword) {
       return res.status(400).json({ error: "password and confirm password dont match" });
+    }
+
+    if(password.length < 6){
+      return res.status(400).json({error: "Password must be at least 6 characters"});
     }
 
     const user = await User.findOne({ username })
@@ -38,10 +44,13 @@ export const register = async (req, res) => {
     await newUser.save();
 
     res.status(201).json({
-      _id: newUser._id,
-      fullName: newUser.fullName,
-      username: newUser.username,
-      profilePicture: newUser.profilePicture,
+      message: "Registeration successfull",
+      user:{
+        _id: newUser._id,
+        fullName: newUser.fullName,
+        username: newUser.username,
+        profilePicture: newUser.profilePicture,
+      }
     })
 
   } catch (error) {
@@ -50,6 +59,7 @@ export const register = async (req, res) => {
   }
 }
 
+// LOGIN_ROUTE
 export const login = async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -58,17 +68,40 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: "Username and password are required" });
     }
 
-    const user = await User.findOne({ username });
+    if (password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters" })
+    }
+
+    const user = await User.findOne({
+      username: { $regex: new RegExp(`^${username}$`, 'i') }
+    });
 
     if (!user) {
       return res.status(400).json({ error: "Invalid username or password" });
     }
 
+    if(user.lockUntil && user.lockUntil > Date.now()){
+      const remainingTime = Math.ceil((user.lockUntil - Date.now()) / 1000 / 60);
+      return res.status(423).json({
+        error: `Account temporarily locked. Try again in ${remainingTime} minutes.`
+      })
+    }
+
     const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
 
     if (!isPasswordCorrect) {
+      user.loginAttempts = (user.loginAttempts || 0) + 1;
+
+      if(user.loginAttempts >= 5){
+        user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+      }
+      await user.save();
       return res.status(400).json({ error: "Invalid username or password" });
     }
+
+    user.loginAttempts = 0;
+    user.lockUntil = undefined;
+    user.lastLogin = new Date();
 
     const { accessToken, refreshToken } = generateTokenAndSetCookie(user._id, res);
 
@@ -77,10 +110,13 @@ export const login = async (req, res) => {
     await user.save();
 
     res.status(200).json({
-      _id: user._id,
-      fullName: user.fullName,
-      username: user.username,
-      profilePicture: user.profilePicture,
+      message: "Login succssful",
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        username: user.username,
+        profilePicture: user.profilePicture,
+      },
       accessToken
     })
 
@@ -90,6 +126,7 @@ export const login = async (req, res) => {
   }
 }
 
+// REFREH_TOKEN_ROUTE
 export const refreshToken = async (req, res) => {
   try {
     const refreshToken = req.cookies.refreshToken;
@@ -116,47 +153,71 @@ export const refreshToken = async (req, res) => {
     user.refreshToken = newRefreshToken;
     await user.save();
 
-    res.status(200).json({ accessToken, refreshToken: newRefreshToken })
+    res.status(200).json({ message: "Token refreshed successful", accessToken, refreshToken: newRefreshToken })
   } catch (error) {
     console.log("error in refresh token controller", error.message);
     res.status(500).json({ error: "internal server error" });
   }
 }
 
+// VERIFY_TOKEN_ROUTE
 export const verifyToken = async (req, res) => {
   try {
     const accessToken = req.cookies.accessToken;
     if (!accessToken) {
-      return res.status(401).json({ isAuthenticated: false });
+      return res.status(401).json({ isAuthenticated: false, message: "No access token provided" });
     }
 
-    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.userId).select("-password");
-    if (!user) {
-      return res.status(401).json({ isAuthenticated: false });
+    let decoded;
+
+    try {
+      decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+    } catch (error) {
+      return res.status(401).json({
+        isAuthenticated: false,
+        message: "Invalid or expired token"
+      })
     }
-    return res.status(200).json({ isAuthenticated: true, user:{
-      _id: user._id,
-      username: user.username,
-      fullName: user.fullName,
-      profilePicture: user.profilePicture,
-    } });
+
+    const user = await User.findById(decoded.userId).select("-password -refreshToken");
+    if (!user) {
+      return res.status(401).json({ isAuthenticated: false, message: "User not found" });
+    }
+    return res.status(200).json({
+      isAuthenticated: true, user: {
+        _id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        profilePicture: user.profilePicture,
+      }
+    });
   } catch (error) {
-    res.status(401).json({ isAuthenticated: false });
+    res.status(401).json({ isAuthenticated: false, message: "Internal server error" });
   }
 }
 
 
+// LOGOUT_ROUTE
 export const logout = async (req, res) => {
   try {
-    const user = await User.findById(req.user?._id);
-    if (user) {
-      user.refreshToken = "";
-      await user.save();
+    const refreshToken = req.cookies.refreshToken;
+
+    if (refreshToken) {
+      await User.updateOne(
+        { refreshToken },
+        { $unset: { refreshToken: 1 } }
+      )
     }
-    res.cookie("refreshToken", "", { maxAge: 0 });
-    res.cookie("accessToken", "", { maxAge: 0 });
-    res.status(200).json({ message: "Logged out successfully" })
+
+    res.clearCookie("accessToken", {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production"
+    })
+
+    res.status(200).json({
+      message: "Logged out successful"
+    })
   } catch (error) {
     console.log("Error in logout controller:", error.message);
     res.status(500).json({ error: "Internal server error" })

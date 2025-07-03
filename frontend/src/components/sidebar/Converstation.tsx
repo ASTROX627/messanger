@@ -19,23 +19,14 @@ const Conversation: FC<ConverstationProps> = memo(({
 }) => {
   const { selectedConversation, setSelectedConversation } = useConverstation();
   const { onlineUser } = useAppContext();
-
-  console.log("online users:", onlineUser);
-  console.log("conversation id:", conversation._id);
   
-  
-
   const conversationData = useMemo(() =>{
     const isOnline = onlineUser.includes(conversation._id);
-    console.log(`User ${conversation.fullName} online status:`, isOnline);
     return{
       isSelected: selectedConversation?._id === conversation._id,
       isOnline
     }
   }, [onlineUser, conversation._id, selectedConversation?._id])
-
-  console.log("is online:", onlineUser.includes(conversation._id));
-  
 
   const handleClick = useCallback(() => {
     setSelectedConversation(conversation);

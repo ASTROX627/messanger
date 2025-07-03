@@ -141,8 +141,6 @@ export const AppProvider: FC<PropsWithChildren> = ({ children }) => {
     let isComponentMounted = true;
 
     socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
-      
       if(isComponentMounted){
         dispatch({
           type: Action.SET_SOCKET,
@@ -152,12 +150,20 @@ export const AppProvider: FC<PropsWithChildren> = ({ children }) => {
     })
 
     socket.on("getOnlineUsers", (users: string[]) => {
-      console.log("Online users:", users);
       
       if(isComponentMounted){
         dispatch({
           type: Action.SET_SOCKET,
           payload: {socket: state.socket, onlineUser: users}
+        })
+      }
+    })
+
+    socket.on("disconnet", () => {
+      if(isComponentMounted){
+        dispatch({
+          type: Action.SET_SOCKET,
+          payload: {socket: null, onlineUser:[]}
         })
       }
     })

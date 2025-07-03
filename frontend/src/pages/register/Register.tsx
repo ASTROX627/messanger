@@ -1,12 +1,13 @@
-import { useEffect, useState, type FC, type JSX } from "react"
+import { useState, type FC, type JSX } from "react"
 import GenderCheckbox from "./GenderCheckbox"
-import { Link, useActionData, useNavigate, useSubmit } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import AuthInputs from "../../components/auth/AuthInputs";
 import * as Yup from "yup";
 import { yupResolver } from '@hookform/resolvers/yup';
 import { FormProvider, useForm, type SubmitHandler } from "react-hook-form";
 import toast from "react-hot-toast";
-import type { RegisterActionResponse } from "./registerAction";
+import { httpService } from "../../core/httpService";
+import { AxiosError } from "axios";
 
 export type RegisterFormValue = {
   fullName: string,
@@ -33,7 +34,6 @@ const registerSchema = Yup.object().shape({
 
 const Register: FC = (): JSX.Element => {
 
-
   const methods = useForm<RegisterFormValue>({
     resolver: yupResolver(registerSchema),
     defaultValues: {
@@ -48,36 +48,54 @@ const Register: FC = (): JSX.Element => {
   const { register, handleSubmit, formState: { errors } } = methods;
 
   const navigate = useNavigate();
-  const submitForm = useSubmit();
-  const actionData = useActionData() as RegisterActionResponse;
-
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    if (actionData) {
-      if ("error" in actionData && actionData.error) {
-        toast.error(actionData.errorMessage, { duration: 400 });
-      } else if ("success" in actionData && actionData.success) {
-        toast.promise(
-          new Promise<string>((resolve) => {
-            setTimeout(() => {
-              resolve(actionData.successMessage);
-              navigate("/login")
-            }, 2000)
-          }),
-          {
-            loading: "Registration user...",
-            success: (message: string) => message,
-            error: (error) => error.message || "Something went wrong, please try again."
-          }, { duration: 4000 }
-        )
-      }
+  const registerUser = async (data: RegisterFormValue) => {
+    if (data.password !== data.confirmPassword) {
+      throw new Error("Password and confirm password do not match");
     }
-  }, [actionData, navigate])
+
+    const response = await httpService.post("/auth/register", data);
+
+    if (response.status === 201) {
+      return response.data;
+    }
+
+    throw new Error("Registration failed");
+  }
 
   const onSubmit: SubmitHandler<RegisterFormValue> = (data) => {
-    submitForm(data, { method: "POST", action: "/register" });
+    if (isLoading) return;
+    setIsLoading(true);
+    const registerPromise = registerUser(data);
+
+    toast.promise(
+      registerPromise,
+      {
+        loading: "Creating your account...",
+        success: () => {
+          setTimeout(() => {
+            navigate("/login", { replace: true });
+          }, 1000);
+          return 'Registration successful! Redirecting to login page...';
+        },
+        error: (error) => {
+          if (error instanceof AxiosError) {
+            const statusCode = error.response?.status;
+            if (statusCode === 400) {
+              return error.response?.data?.error || "Invalid input data";
+            } else if (statusCode && statusCode >= 500) {
+              return "Server error. Please try again later";
+            }
+          }
+          return error.message || "Something went wrong, please try again";
+        }
+      }, { duration: 3000 }
+    ).finally(() => {
+      setIsLoading(false)
+    })
   };
 
 
@@ -138,7 +156,9 @@ const Register: FC = (): JSX.Element => {
 
             <Link to="/login" className="text-sm hover:underline hover:text-blue-600 my-4 inline-block mx-0.5">Already have an account?</Link>
             <div>
-              <button className="btn btn-block btn-sm mt-2 btn-outline">Register</button>
+              <button disabled={isLoading} className="btn btn-block btn-sm mt-2 btn-outline">
+                {isLoading ? "Creating Account" : "Register"}
+              </button>
             </div>
           </form>
         </FormProvider>

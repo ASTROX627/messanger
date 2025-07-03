@@ -10,21 +10,24 @@ const generateTokenAndSetCookie = (userId, res) => {
   const refreshToken = jwt.sign(
     { userId },
     process.env.REFRESH_TOKEN_SECRET,
-    { expiresIn: "15d" }
+    { expiresIn: "7d" }
   )
+
+  const cookiesOption = {
+    httpOnly: true,
+    sameSite: "strict",
+    secure: process.env.NODE_ENV === "production",
+    path: "/"
+  }
 
   res.cookie("accessToken", accessToken, {
     maxAge: 15 * 60 * 1000,
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV !== "development"
+    ...cookiesOption
   })
 
   res.cookie("refreshToken", refreshToken, {
-    maxAge: 15 * 24 * 60 * 60 * 1000,
-    httpOnly: true,
-    sameSite: "strict",
-    secure: process.env.NODE_ENV !== "development"
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    ...cookiesOption
   })
 
   return { accessToken, refreshToken }

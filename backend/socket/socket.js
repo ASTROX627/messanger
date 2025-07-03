@@ -25,14 +25,14 @@ io.on("connection", (socket) => {
   console.log("a user connected", socket.id);
   const userId = socket.handshake.query.userId;
 
-  if (userId && userId !== "undefind") {
+  if (userId && userId !== "undefined") {
     userSocketMap[userId] = socket.id;
     console.log(`User ${userId} mapped to socket ${socket.id}`);
     
   }
 
   io.emit("getOnlineUsers", Object.keys(userSocketMap));
-  socket.on("disconnected", () => {
+  socket.on("disconnect", () => {
     console.log("user disconnected", socket.id);
     for(const [id, socketId] of Object.entries(userSocketMap)){
       if(socketId === socket.id){

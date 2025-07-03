@@ -4,13 +4,17 @@ const userSchema = new mongoose.Schema({
   fullName: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    maxLengrh: 100
   },
   username: {
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    minlength: 3, 
+    maxLengrh: 30,
+    match: /^[a-zA-Z0-9_]+$/
   },
   password: {
     type: String,
@@ -29,8 +33,18 @@ const userSchema = new mongoose.Schema({
   refreshToken: {
     type: String,
     default: ""
+  },
+  loginAttempts:{
+    type: Number,
+    default: 0
+  },
+  lockUntil:{
+    type: Date
+  },
+  lastLogin:{
+    type: Date
   }
-}, {timestamps: true})
+}, {timestamps: true});
 
 const User = mongoose.model("User", userSchema);
 
